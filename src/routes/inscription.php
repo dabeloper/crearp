@@ -88,16 +88,24 @@ $app->post('/api/inscription/add', function(Request $request, Response $response
 	    if( empty($fk_course) || empty($user_id) ){
 	    	return buildResponse( $response , "Identificador de Usuario o Electiva no recibida." , 406 );
 	    }
-
-	    $sql = "INSERT INTO inscription (fk_user , fk_course) VALUES (:fk_user,:fk_course)";
-
         // Get DB Object
         $db = new db();
         // Connect
         $db = $db->connect();
+        $sql = "SELECT capacity FROM course WHERE id = $fk_course";
+        $stmt = $db->query($sql);
+        $course_capacity = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $sql = "SELECT COUNT(*) FROM inscription WHERE fk_course = $fk_course";
+        $stmt = $db->query($sql);
+        $inscription_capacity = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if( intval($inscription_capacity["COUNT(*)"]) >= intval($course_capacity["capacity"]) ){
+            return buildResponse( $response , "Cupo lleno" , 406  );
+        }
+	$sql = "INSERT INTO inscription (fk_user , fk_course) VALUES (:fk_user,:fk_course)";
 
         $stmt = $db->prepare($sql);
-
         $stmt->bindParam(':fk_user', $user_id);
         $stmt->bindParam(':fk_course',  $fk_course);
 
